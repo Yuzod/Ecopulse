@@ -19,6 +19,8 @@ Sensores (DHT22, MQ135, KY038)
 
 El ESP32 lee los sensores, clasifica el aire y el sonido, muestra todo en el OLED y cada 20 segundos envía los 4 valores a un canal de ThingSpeak. El dashboard web lee ese mismo canal para graficar el historial y disparar alertas.
 
+Repositorio actual: https://thingspeak.mathworks.com/channels/3411838 
+
 ## Hardware
 
 | Componente | Función |
