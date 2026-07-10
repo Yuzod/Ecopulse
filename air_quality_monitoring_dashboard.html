@@ -1,0 +1,446 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); background: transparent; }
+
+.dashboard { padding: 1rem 0; }
+.top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 8px; }
+.top-bar h1 { font-size: 16px; font-weight: 500; color: var(--text-primary); }
+.live-badge { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
+.live-dot { width: 8px; height: 8px; border-radius: 50%; background: #0ca30c; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+.kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 1rem; }
+.kpi-card { background: var(--surface-1); border-radius: var(--radius); padding: 0.75rem 1rem; border: 0.5px solid var(--border); }
+.kpi-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+.kpi-value { font-size: 22px; font-weight: 500; color: var(--text-primary); }
+.kpi-unit { font-size: 12px; color: var(--text-secondary); }
+.kpi-status { font-size: 11px; margin-top: 2px; }
+
+.main-grid { display: grid; grid-template-columns: 1fr 280px; gap: 12px; margin-bottom: 12px; }
+@media (max-width: 600px) { .main-grid { grid-template-columns: 1fr; } }
+
+.map-card { background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 12px; padding: 1rem; }
+.map-card h2 { font-size: 13px; font-weight: 500; color: var(--text-secondary); margin-bottom: 10px; }
+.map-wrap { position: relative; width: 100%; height: 280px; background: var(--surface-1); border-radius: 8px; border: 0.5px solid var(--border); overflow: hidden; }
+
+.side-col { display: flex; flex-direction: column; gap: 12px; }
+.panel { background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 12px; padding: 1rem; }
+.panel h2 { font-size: 13px; font-weight: 500; color: var(--text-secondary); margin-bottom: 10px; }
+
+.node-list { display: flex; flex-direction: column; gap: 8px; }
+.node-item { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 6px 8px; border-radius: var(--radius); border: 0.5px solid transparent; transition: background 0.15s; }
+.node-item:hover { background: var(--surface-1); }
+.node-item.selected { background: var(--bg-accent); border-color: var(--border-accent); }
+.node-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.node-name { font-size: 13px; color: var(--text-primary); flex: 1; }
+.node-type { font-size: 11px; color: var(--text-muted); }
+.node-badge { font-size: 10px; padding: 2px 6px; border-radius: var(--radius); font-weight: 500; }
+
+.alerts-list { display: flex; flex-direction: column; gap: 6px; max-height: 160px; overflow-y: auto; }
+.alert-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; border-radius: var(--radius); border-left: 3px solid; }
+.alert-item.danger { background: var(--bg-danger); border-color: #d03b3b; }
+.alert-item.warning { background: var(--bg-warning); border-color: #fab219; }
+.alert-item.ok { background: var(--bg-success); border-color: #0ca30c; }
+.alert-text { font-size: 12px; color: var(--text-primary); line-height: 1.4; }
+.alert-time { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+.chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 600px) { .chart-row { grid-template-columns: 1fr; } }
+.chart-card { background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 12px; padding: 1rem; }
+.chart-card h2 { font-size: 13px; font-weight: 500; color: var(--text-secondary); margin-bottom: 10px; }
+
+.legend-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; font-size: 11px; color: var(--text-secondary); }
+.legend-row span { display: flex; align-items: center; gap: 4px; }
+.legend-sq { width: 8px; height: 8px; border-radius: 2px; }
+
+.thingspeak-bar { background: var(--surface-1); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 12px; color: var(--text-secondary); margin-top: 12px; }
+.ts-input { display: flex; align-items: center; gap: 6px; }
+.ts-input input { font-size: 12px; padding: 4px 8px; border-radius: var(--radius); border: 0.5px solid var(--border); background: var(--surface-2); color: var(--text-primary); width: 160px; }
+.ts-btn { font-size: 12px; padding: 4px 12px; border-radius: var(--radius); border: 0.5px solid var(--border-strong); background: var(--surface-2); color: var(--text-primary); cursor: pointer; }
+.ts-btn:hover { background: var(--surface-1); }
+</style>
+
+<div class="dashboard">
+  <div class="top-bar">
+    <h1><i class="ti ti-air" aria-hidden="true" style="margin-right:6px"></i>Monitoreo de calidad de aire — zona urbana</h1>
+    <div class="live-badge"><div class="live-dot"></div> Actualizando en vivo · <span id="clock">--:--:--</span></div>
+  </div>
+
+  <div class="kpi-row" id="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-label">Temperatura</div>
+      <div class="kpi-value"><span id="kpi-temp">--</span><span class="kpi-unit"> °C</span></div>
+      <div class="kpi-status" id="kpi-temp-st"></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Humedad</div>
+      <div class="kpi-value"><span id="kpi-hum">--</span><span class="kpi-unit"> %</span></div>
+      <div class="kpi-status" id="kpi-hum-st"></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Calidad aire (MQ135)</div>
+      <div class="kpi-value"><span id="kpi-air">--</span></div>
+      <div class="kpi-status" id="kpi-air-st"></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Sonido (KY038)</div>
+      <div class="kpi-value"><span id="kpi-snd">--</span></div>
+      <div class="kpi-status" id="kpi-snd-st"></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Nodos activos</div>
+      <div class="kpi-value"><span id="kpi-nodes">5</span></div>
+      <div class="kpi-status" style="color:#0ca30c;font-size:11px;">todos operativos</div>
+    </div>
+  </div>
+
+  <div class="main-grid">
+    <div class="map-card">
+      <h2><i class="ti ti-map-pin" aria-hidden="true"></i> Mapa de nodos</h2>
+      <div class="map-wrap">
+        <canvas id="mapCanvas" style="width:100%;height:100%;"></canvas>
+      </div>
+      <div style="margin-top:8px;display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--text-muted);">
+        <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#0ca30c;margin-right:4px;"></span>Normal</span>
+        <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#fab219;margin-right:4px;"></span>Advertencia</span>
+        <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#d03b3b;margin-right:4px;"></span>Peligro</span>
+        <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#2a78d6;margin-right:4px;"></span>Tu ESP32</span>
+      </div>
+    </div>
+
+    <div class="side-col">
+      <div class="panel">
+        <h2><i class="ti ti-router" aria-hidden="true"></i> Nodos</h2>
+        <div class="node-list" id="node-list"></div>
+      </div>
+      <div class="panel">
+        <h2><i class="ti ti-bell" aria-hidden="true"></i> Alertas</h2>
+        <div class="alerts-list" id="alerts-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-row">
+    <div class="chart-card">
+      <h2><i class="ti ti-chart-line" aria-hidden="true"></i> Temperatura y humedad</h2>
+      <div class="legend-row">
+        <span><span class="legend-sq" style="background:#2a78d6"></span>Temperatura °C</span>
+        <span><span class="legend-sq" style="background:#1baf7a"></span>Humedad %</span>
+      </div>
+      <div style="position:relative;height:160px;"><canvas id="chartTH"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h2><i class="ti ti-chart-line" aria-hidden="true"></i> Calidad de aire y sonido</h2>
+      <div class="legend-row">
+        <span><span class="legend-sq" style="background:#eda100"></span>MQ135</span>
+        <span><span class="legend-sq" style="background:#4a3aa7"></span>KY038</span>
+      </div>
+      <div style="position:relative;height:160px;"><canvas id="chartAS"></canvas></div>
+    </div>
+  </div>
+
+  <div class="thingspeak-bar">
+    <div style="display:flex;align-items:center;gap:6px;">
+      <i class="ti ti-cloud" aria-hidden="true"></i>
+      <span>ThingSpeak · <span id="ts-status" style="color:var(--text-muted)">sin configurar</span></span>
+    </div>
+    <div class="ts-input">
+      <input id="ts-channel" placeholder="Channel ID" type="number" />
+      <input id="ts-key" placeholder="Read API Key" type="text" style="width:140px;" />
+      <button class="ts-btn" onclick="conectarThingSpeak()">Conectar ↗</button>
+    </div>
+    <span id="ts-last" style="font-size:11px;color:var(--text-muted);">último envío: —</span>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const NODES = [
+  { id:'n1', name:'Nodo Centro',    type:'Simulado', x:0.38, y:0.30, real:false },
+  { id:'n2', name:'Nodo Norte',     type:'Simulado', x:0.50, y:0.12, real:false },
+  { id:'n3', name:'Nodo Sur',       type:'Simulado', x:0.48, y:0.72, real:false },
+  { id:'n4', name:'Nodo Oeste',     type:'Simulado', x:0.18, y:0.48, real:false },
+  { id:'n5', name:'Mi ESP32',       type:'Real',     x:0.68, y:0.45, real:true  },
+];
+
+const DATA = {};
+NODES.forEach(n => {
+  DATA[n.id] = {
+    temp: 22 + Math.random()*8,
+    hum:  55 + Math.random()*30,
+    air:  500 + Math.random()*600,
+    snd:  400 + Math.random()*700,
+  };
+});
+
+const HISTORY = { labels:[], temp:[], hum:[], air:[], snd:[] };
+const MAX_PTS = 20;
+let selectedNode = 'n5';
+let tsChannel = null, tsKey = null, tsTimer = null;
+
+function statusColor(v, low, mid) {
+  if (v < low) return '#0ca30c';
+  if (v < mid) return '#fab219';
+  return '#d03b3b';
+}
+function airLabel(v) {
+  if (v < 800) return { text:'Limpio', color:'#0ca30c' };
+  if (v < 1500) return { text:'Aceptable', color:'#1baf7a' };
+  if (v < 2500) return { text:'Moderado', color:'#fab219' };
+  if (v < 3500) return { text:'Malo', color:'#ec835a' };
+  return { text:'Peligroso', color:'#d03b3b' };
+}
+function sndLabel(v) {
+  if (v < 100) return { text:'Silencio', color:'#0ca30c' };
+  if (v < 300) return { text:'Bajo', color:'#1baf7a' };
+  if (v < 700) return { text:'Normal', color:'#fab219' };
+  if (v < 1500) return { text:'Alto', color:'#ec835a' };
+  return { text:'Muy alto', color:'#d03b3b' };
+}
+function nodeStatusColor(d) {
+  if (d.air > 2500 || d.snd > 3000 || d.temp > 35) return '#d03b3b';
+  if (d.air > 1500 || d.snd > 2000 || d.temp > 30) return '#fab219';
+  return '#0ca30c';
+}
+
+const alerts = [];
+function addAlert(msg, level) {
+  const now = new Date();
+  const t = now.toLocaleTimeString('es-PE', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  alerts.unshift({ msg, level, time: t });
+  if (alerts.length > 20) alerts.pop();
+  renderAlerts();
+}
+
+function renderAlerts() {
+  const el = document.getElementById('alerts-list');
+  if (!alerts.length) { el.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:4px 0;">Sin alertas activas</div>'; return; }
+  el.innerHTML = alerts.slice(0,8).map(a => `
+    <div class="alert-item ${a.level}">
+      <div>
+        <div class="alert-text">${a.msg}</div>
+        <div class="alert-time">${a.time}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderNodes() {
+  const el = document.getElementById('node-list');
+  el.innerHTML = NODES.map(n => {
+    const d = DATA[n.id];
+    const col = n.real ? '#2a78d6' : nodeStatusColor(d);
+    const al = airLabel(d.air);
+    return `<div class="node-item ${n.id===selectedNode?'selected':''}" onclick="selectNode('${n.id}')">
+      <div class="node-dot" style="background:${col}"></div>
+      <div style="flex:1;">
+        <div class="node-name">${n.name}</div>
+        <div class="node-type">${n.type} · ${d.temp.toFixed(1)}°C</div>
+      </div>
+      <div class="node-badge" style="background:${al.color}20;color:${al.color}">${al.text}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderKPI() {
+  const d = DATA[selectedNode];
+  const al = airLabel(d.air);
+  const sl = sndLabel(d.snd);
+  document.getElementById('kpi-temp').textContent = d.temp.toFixed(1);
+  document.getElementById('kpi-hum').textContent = d.hum.toFixed(1);
+  document.getElementById('kpi-air').textContent = Math.round(d.air);
+  document.getElementById('kpi-snd').textContent = Math.round(d.snd);
+  document.getElementById('kpi-temp-st').innerHTML = `<span style="color:${d.temp>35?'#d03b3b':d.temp>30?'#fab219':'#0ca30c'}">${d.temp>35?'Alta':'Normal'}</span>`;
+  document.getElementById('kpi-hum-st').innerHTML = `<span style="color:${d.hum>80?'#fab219':'#0ca30c'}">${d.hum>80?'Alta':'Normal'}</span>`;
+  document.getElementById('kpi-air-st').innerHTML = `<span style="color:${al.color}">${al.text}</span>`;
+  document.getElementById('kpi-snd-st').innerHTML = `<span style="color:${sl.color}">${sl.text}</span>`;
+}
+
+function selectNode(id) {
+  selectedNode = id;
+  renderNodes();
+  renderKPI();
+  updateHistory();
+  drawMap();
+}
+
+const canvas = document.getElementById('mapCanvas');
+const ctx = canvas.getContext('2d');
+function drawMap() {
+  const W = canvas.parentElement.clientWidth;
+  const H = canvas.parentElement.clientHeight;
+  canvas.width = W; canvas.height = H;
+
+  ctx.clearRect(0,0,W,H);
+  const isDark = window.matchMedia('(prefers-color-scheme:dark)').matches;
+  ctx.fillStyle = isDark ? '#1a1a19' : '#f5f4f0';
+  ctx.fillRect(0,0,W,H);
+
+  ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+  ctx.lineWidth = 1;
+  for(let i=0;i<8;i++){
+    ctx.beginPath(); ctx.moveTo(i*W/7,0); ctx.lineTo(i*W/7,H); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,i*H/7); ctx.lineTo(W,i*H/7); ctx.stroke();
+  }
+
+  NODES.forEach(n => {
+    const d = DATA[n.id];
+    const col = n.real ? '#2a78d6' : nodeStatusColor(d);
+    const x = n.x * W, y = n.y * H;
+    const sel = n.id === selectedNode;
+
+    ctx.beginPath();
+    ctx.arc(x, y, sel?18:12, 0, Math.PI*2);
+    ctx.fillStyle = col+'33';
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(x, y, sel?10:7, 0, Math.PI*2);
+    ctx.fillStyle = col;
+    ctx.fill();
+
+    if (sel) {
+      ctx.beginPath();
+      ctx.arc(x, y, 13, 0, Math.PI*2);
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = isDark ? '#ffffff' : '#0b0b0b';
+    ctx.font = `${sel?'500 ':''}12px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(n.name, x, y + (sel?26:22));
+
+    const al = airLabel(d.air);
+    ctx.fillStyle = al.color;
+    ctx.font = '10px sans-serif';
+    ctx.fillText(al.text, x, y + (sel?38:34));
+  });
+}
+
+const chartOpts = (labels, yLabel) => ({
+  responsive: true, maintainAspectRatio: false,
+  animation: { duration: 300 },
+  plugins: { legend: { display: false }, tooltip: { mode:'index', intersect:false } },
+  scales: {
+    x: { ticks: { color:'#898781', font:{size:10}, maxTicksLimit:8 }, grid: { color:'rgba(128,128,128,0.1)' } },
+    y: { ticks: { color:'#898781', font:{size:10} }, grid: { color:'rgba(128,128,128,0.1)' } }
+  }
+});
+
+const chartTH = new Chart(document.getElementById('chartTH'), {
+  type: 'line',
+  data: {
+    labels: HISTORY.labels,
+    datasets: [
+      { label:'Temp °C', data: HISTORY.temp, borderColor:'#2a78d6', backgroundColor:'#2a78d620', borderWidth:2, pointRadius:2, tension:0.3, fill:true },
+      { label:'Hum %',   data: HISTORY.hum,  borderColor:'#1baf7a', backgroundColor:'#1baf7a20', borderWidth:2, pointRadius:2, tension:0.3, fill:true },
+    ]
+  },
+  options: chartOpts()
+});
+
+const chartAS = new Chart(document.getElementById('chartAS'), {
+  type: 'line',
+  data: {
+    labels: HISTORY.labels,
+    datasets: [
+      { label:'MQ135', data: HISTORY.air, borderColor:'#eda100', backgroundColor:'#eda10020', borderWidth:2, pointRadius:2, tension:0.3, fill:true },
+      { label:'KY038', data: HISTORY.snd, borderColor:'#4a3aa7', backgroundColor:'#4a3aa720', borderWidth:2, pointRadius:2, tension:0.3, fill:true },
+    ]
+  },
+  options: chartOpts()
+});
+
+function updateHistory() {
+  const d = DATA[selectedNode];
+  const t = new Date().toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  if (HISTORY.labels.length >= MAX_PTS) {
+    HISTORY.labels.shift(); HISTORY.temp.shift(); HISTORY.hum.shift(); HISTORY.air.shift(); HISTORY.snd.shift();
+  }
+  HISTORY.labels.push(t);
+  HISTORY.temp.push(parseFloat(d.temp.toFixed(1)));
+  HISTORY.hum.push(parseFloat(d.hum.toFixed(1)));
+  HISTORY.air.push(Math.round(d.air));
+  HISTORY.snd.push(Math.round(d.snd));
+  chartTH.update('none');
+  chartAS.update('none');
+}
+
+function checkAlerts(nodeId, d, name) {
+  const al = airLabel(d.air);
+  if (d.air > 2500) addAlert(`${name}: Calidad de aire ${al.text} (${Math.round(d.air)})`, 'danger');
+  else if (d.air > 1500) addAlert(`${name}: Calidad de aire ${al.text} (${Math.round(d.air)})`, 'warning');
+  if (d.snd > 3000) addAlert(`${name}: Nivel de sonido muy alto (${Math.round(d.snd)})`, 'danger');
+  else if (d.snd > 2000) addAlert(`${name}: Nivel de sonido alto (${Math.round(d.snd)})`, 'warning');
+  if (d.temp > 35) addAlert(`${name}: Temperatura alta (${d.temp.toFixed(1)}°C)`, 'danger');
+}
+
+function simulateNodes() {
+  NODES.forEach(n => {
+    if (n.real) return;
+    const d = DATA[n.id];
+    d.temp = Math.max(15, Math.min(40, d.temp + (Math.random()-0.5)*0.8));
+    d.hum  = Math.max(30, Math.min(95, d.hum  + (Math.random()-0.5)*1.5));
+    d.air  = Math.max(300, Math.min(4000, d.air + (Math.random()-0.5)*120));
+    d.snd  = Math.max(200, Math.min(4000, d.snd + (Math.random()-0.5)*200));
+    if (Math.random() < 0.1) checkAlerts(n.id, d, n.name);
+  });
+  renderNodes();
+  renderKPI();
+  updateHistory();
+  drawMap();
+}
+
+async function fetchThingSpeak() {
+  if (!tsChannel || !tsKey) return;
+  try {
+    const r = await fetch(`https://api.thingspeak.com/channels/${tsChannel}/feeds/last.json?api_key=${tsKey}`);
+    const j = await r.json();
+    if (j && j.field1) {
+      const d = DATA['n5'];
+      if (j.field1) d.temp = parseFloat(j.field1);
+      if (j.field2) d.hum  = parseFloat(j.field2);
+      if (j.field3) d.air  = parseFloat(j.field3);
+      if (j.field4) d.snd  = parseFloat(j.field4);
+      document.getElementById('ts-status').textContent = 'conectado ✓';
+      document.getElementById('ts-status').style.color = '#0ca30c';
+      document.getElementById('ts-last').textContent = 'último dato: ' + new Date(j.created_at).toLocaleTimeString('es-PE');
+      if (selectedNode === 'n5') { renderKPI(); updateHistory(); }
+      renderNodes(); drawMap();
+      checkAlerts('n5', d, 'Mi ESP32');
+    }
+  } catch(e) {
+    document.getElementById('ts-status').textContent = 'error de conexión';
+    document.getElementById('ts-status').style.color = '#d03b3b';
+  }
+}
+
+function conectarThingSpeak() {
+  tsChannel = document.getElementById('ts-channel').value.trim();
+  tsKey     = document.getElementById('ts-key').value.trim();
+  if (!tsChannel || !tsKey) { alert('Ingresa el Channel ID y Read API Key'); return; }
+  document.getElementById('ts-status').textContent = 'conectando...';
+  document.getElementById('ts-status').style.color = '#fab219';
+  if (tsTimer) clearInterval(tsTimer);
+  fetchThingSpeak();
+  tsTimer = setInterval(fetchThingSpeak, 20000);
+  addAlert('Mi ESP32: ThingSpeak conectado correctamente', 'ok');
+}
+
+function clock() {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('es-PE');
+}
+
+renderAlerts();
+renderNodes();
+renderKPI();
+updateHistory();
+drawMap();
+clock();
+
+setInterval(simulateNodes, 3000);
+setInterval(clock, 1000);
+window.addEventListener('resize', drawMap);
+</script>
