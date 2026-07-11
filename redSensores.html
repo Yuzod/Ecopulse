@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EcoPulse · Red de Sensores</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F5EFE6; --ink:#0A0A0A; --teal:#1F4A4E; --pink:#E8C6B8;
+    --green:#2A7A4A; --amber:#B8862B; --red:#B33A3A;
+  }
+  body{ font-family:'Inter', sans-serif; }
+  .font-display{ font-family:'Space Grotesk', sans-serif; }
+  .font-mono{ font-family:'JetBrains Mono', monospace; }
+  .label{ font-family:'JetBrains Mono', monospace; font-size:11px; letter-spacing:.08em; font-weight:600; text-transform:uppercase; }
+  .dot::before{ content:''; display:inline-block; width:6px; height:6px; border-radius:50%; background:currentColor; margin-right:6px; vertical-align:middle; }
+  .cell{ background:var(--bg); border:2px solid var(--ink); border-radius:10px; }
+  .tint-cream{ background:#FBF8F2; }
+  .tint-teal{ background:#E4EEEE; }
+  .tint-green{ background:#E7F0E5; }
+  .brutalist-btn{ border:2px solid var(--ink); border-radius:8px; font-family:'JetBrains Mono', monospace; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.03em; transition:transform .08s ease; }
+  .brutalist-btn:active{ transform:translateY(1px); }
+  .brutalist-btn-primary{ background:var(--teal); color:var(--bg); }
+  .brutalist-btn-primary:hover{ background:#163638; }
+  .brutalist-btn-secondary{ background:var(--bg); color:var(--ink); }
+  .brutalist-btn-secondary:hover{ background:var(--pink); }
+  .brutalist-input{ border:2px solid var(--ink); border-radius:8px; background:var(--bg); font-family:'JetBrains Mono', monospace; font-size:12px; padding:8px 10px; width:100%; outline:none; }
+  .brutalist-input:focus{ border-color:var(--teal); }
+  .brutalist-select{ border:2px solid var(--ink); border-radius:8px; background:var(--bg); font-family:'JetBrains Mono', monospace; font-size:12px; padding:8px 10px; width:100%; outline:none; }
+</style>
+</head>
+<body class="font-body bg-[#F5EFE6] text-[#0A0A0A] min-h-screen">
+
+<div class="max-w-[1440px] mx-auto pb-12">
+
+    <!-- Header (idéntico al panel principal, con navegación activa en Red de Sensores) -->
+    <header class="border-b-2 border-[#0A0A0A] bg-[#F5EFE6] sticky top-0 z-50">
+        <div class="flex items-stretch justify-between px-8">
+            <div class="flex items-center gap-4 py-5">
+                <div class="w-8 h-8 border-2 border-[#0A0A0A] rounded-[8px] bg-[#1F4A4E] flex items-center justify-center">
+                    <i class="ti ti-wind text-[#E8C6B8] text-xl"></i>
+                </div>
+                <div class="font-display font-bold text-xl tracking-tight uppercase">ECOPULSE<span class="text-[#1F4A4E]"></span></div>
+                <div class="ml-6 label text-[#0A0A0A]/60 hidden md:block">SISTEMA DE MONITOREO IOT · v2.1</div>
+            </div>
+            <nav class="relative flex items-stretch">
+                <a href="dashboard_v2.html" class="px-6 flex items-center font-display font-semibold text-sm text-[#0A0A0A]/60 hover:text-[#0A0A0A] border-l-2 border-r-2 border-[#0A0A0A]">Panel de Control</a>
+                <a href="redSensores.html" class="px-6 flex items-center font-display font-semibold text-sm bg-[#E8C6B8] border-r-2 border-[#0A0A0A] hidden lg:flex">Red de Sensores</a>
+                <div class="flex items-center gap-3 pl-6 pr-2">
+                    <button class="w-9 h-9 border-2 border-[#0A0A0A] rounded-[8px] flex items-center justify-center text-base hover:bg-[#E8C6B8]"><i class="ti ti-search"></i></button>
+                    <div class="w-9 h-9 border-2 border-[#0A0A0A] rounded-[8px] bg-[#1F4A4E] text-[#F5EFE6] flex items-center justify-center font-display font-bold text-xs">ESP</div>
+                </div>
+            </nav>
+        </div>
+
+        <div class="flex items-center justify-between px-8 py-3 border-t-2 border-[#0A0A0A] bg-[#1F4A4E] text-[#F5EFE6]">
+            <div class="flex items-center gap-6 label">
+                <span class="text-[#E8C6B8] dot" id="header-status">EN VIVO · SINCRONIZADO --:--:--</span>
+                <span class="opacity-60 hidden sm:inline" id="header-conn">ACTIVO: MQ135 · DHT11 · KY038 · ESP32</span>
+            </div>
+            <div class="flex items-center gap-6 label">
+                <span class="opacity-60 hidden sm:inline">ESTADO DE LA RED</span>
+                <span class="text-[#E8C6B8]" id="header-net-status">ÓPTIMO</span>
+                <span class="opacity-60">|</span>
+                <span id="header-clock">--:--:--</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Page Title -->
+    <div class="px-8 pt-8 pb-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+            <div class="label text-[#0A0A0A]/50 mb-2">Topología y Gestión de Dispositivos</div>
+            <h1 class="font-display font-bold text-4xl">Red de Sensores <span class="text-[#1F4A4E]">/</span> Mapa de Nodos</h1>
+        </div>
+        <a href="index.html" class="px-4 py-2 brutalist-btn brutalist-btn-secondary flex items-center gap-2">
+            <i class="ti ti-arrow-left text-sm"></i> Volver al Panel
+        </a>
+    </div>
+
+    <!-- Main Grid: Mapa + Formulario -->
+    <main class="px-8 pb-8 grid grid-cols-1 lg:grid-cols-5 gap-4 items-start">
+
+        <!-- Mapa de Nodos -->
+        <div class="cell tint-cream lg:col-span-3 p-5 flex flex-col">
+            <div class="flex items-start justify-between mb-3">
+                <div>
+                    <div class="label text-[#1F4A4E] dot">RED · MAPA DE NODOS</div>
+                    <div class="text-xs text-[#0A0A0A]/60 mt-1">Distribución geoespacial simulada de sensores</div>
+                </div>
+                <div class="flex items-center gap-1.5 px-2.5 py-1 border-2 border-[#0A0A0A] rounded-[8px] bg-[#F5EFE6]">
+                    <i class="ti ti-map-pin text-sm"></i>
+                    <span class="font-mono text-[11px] font-semibold" id="map-node-count">05 NODOS</span>
+                </div>
+            </div>
+
+            <div class="flex-1 relative border-2 border-[#0A0A0A] rounded-[8px] overflow-hidden bg-[#0A0A0A]/[0.03]" style="min-height:420px;">
+                <canvas id="mapCanvas" style="width:100%;height:100%;display:block;"></canvas>
+            </div>
+
+            <div class="flex items-center gap-4 flex-wrap mt-3 font-mono text-[10px] text-[#0A0A0A]/70">
+                <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full" style="background:#2A7A4A;"></span>NORMAL</span>
+                <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full" style="background:#B8862B;"></span>ADVERTENCIA</span>
+                <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full" style="background:#B33A3A;"></span>PELIGRO</span>
+                <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full" style="background:#1F4A4E;"></span>TU ESP32 (REAL)</span>
+            </div>
+        </div>
+
+        <!-- Formulario simulado para agregar nodo -->
+        <div class="cell tint-teal lg:col-span-2 p-5 flex flex-col">
+            <div class="mb-4">
+                <div class="label text-[#1F4A4E] dot">AGREGAR NODO</div>
+                <div class="text-xs text-[#0A0A0A]/60 mt-1">Registro simulado de un nuevo dispositivo IoT</div>
+            </div>
+
+            <form id="node-form" class="flex flex-col gap-3">
+                <div class="flex flex-col gap-1">
+                    <span class="label text-[9px] text-[#0A0A0A]/50">Nombre del nodo</span>
+                    <input type="text" id="node-name" class="brutalist-input" placeholder="ej. Sensor Patio Norte" required>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="flex flex-col gap-1">
+                        <span class="label text-[9px] text-[#0A0A0A]/50">Posición X (%)</span>
+                        <input type="number" id="node-x" class="brutalist-input" min="0" max="100" value="50" required>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <span class="label text-[9px] text-[#0A0A0A]/50">Posición Y (%)</span>
+                        <input type="number" id="node-y" class="brutalist-input" min="0" max="100" value="50" required>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-1">
+                    <span class="label text-[9px] text-[#0A0A0A]/50">Tipo de sensor</span>
+                    <select id="node-type" class="brutalist-select">
+                        <option value="MQ135">MQ135 · Calidad del aire</option>
+                        <option value="DHT11">DHT11 · Temperatura / Humedad</option>
+                        <option value="KY038">KY038 · Sonido</option>
+                        <option value="ESP32">ESP32 · Nodo real</option>
+                    </select>
+                </div>
+
+                <div class="flex flex-col gap-1">
+                    <span class="label text-[9px] text-[#0A0A0A]/50">Estado inicial</span>
+                    <select id="node-status" class="brutalist-select">
+                        <option value="normal">Normal</option>
+                        <option value="warning">Advertencia</option>
+                        <option value="danger">Peligro</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="mt-2 py-2 brutalist-btn brutalist-btn-primary flex items-center justify-center gap-2">
+                    <i class="ti ti-plus text-sm"></i> Registrar Nodo
+                </button>
+                <div id="form-feedback" class="font-mono text-[10px] text-[#2A7A4A] hidden">Nodo agregado al mapa correctamente.</div>
+            </form>
+
+            <div class="mt-4 pt-4 border-t-2 border-dashed border-[#0A0A0A]/20 flex-1 overflow-y-auto">
+                <div class="label text-[#0A0A0A]/50 mb-2">NODOS REGISTRADOS</div>
+                <div id="node-list" class="flex flex-col gap-2"></div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<script>
+(function () {
+    const canvas = document.getElementById('mapCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let nodes = [
+        { id: 'N-01', x: 0.18, y: 0.30, status: 'normal',  type: 'MQ135', label: 'Sensor Norte' },
+        { id: 'N-02', x: 0.55, y: 0.20, status: 'warning', type: 'DHT11', label: 'Sensor Centro' },
+        { id: 'N-03', x: 0.80, y: 0.55, status: 'normal',  type: 'KY038', label: 'Sensor Este' },
+        { id: 'N-04', x: 0.35, y: 0.72, status: 'danger',  type: 'MQ135', label: 'Sensor Sur' },
+        { id: 'ESP32', x: 0.62, y: 0.62, status: 'real',   type: 'ESP32', label: 'Tu ESP32' },
+    ];
+
+    const statusColor = {
+        normal:  '#2A7A4A',
+        warning: '#B8862B',
+        danger:  '#B33A3A',
+        real:    '#1F4A4E',
+    };
+
+    function resizeCanvas() {
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        drawMap(rect.width, rect.height);
+    }
+
+    function drawMap(w, h) {
+        ctx.clearRect(0, 0, w, h);
+
+        // Grilla de fondo
+        ctx.strokeStyle = 'rgba(10,10,10,0.06)';
+        ctx.lineWidth = 1;
+        const step = 24;
+        for (let x = 0; x < w; x += step) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
+        for (let y = 0; y < h; y += step) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+
+        // Conexiones entre nodos
+        ctx.strokeStyle = 'rgba(31,74,78,0.25)';
+        ctx.lineWidth = 1.5;
+        nodes.forEach((n, i) => {
+            nodes.slice(i + 1).forEach(m => {
+                ctx.beginPath();
+                ctx.moveTo(n.x * w, n.y * h);
+                ctx.lineTo(m.x * w, m.y * h);
+                ctx.stroke();
+            });
+        });
+
+        // Nodos
+        nodes.forEach(n => {
+            const px = n.x * w, py = n.y * h;
+            const color = statusColor[n.status] || statusColor.normal;
+            const radius = n.status === 'real' ? 8 : 6;
+
+            ctx.beginPath();
+            ctx.arc(px, py, radius + 5, 0, Math.PI * 2);
+            ctx.fillStyle = color + '22';
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(px, py, radius, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#0A0A0A';
+            ctx.stroke();
+
+            ctx.font = '600 9px monospace';
+            ctx.fillStyle = 'rgba(10,10,10,0.65)';
+            ctx.textAlign = 'center';
+            ctx.fillText(n.id, px, py - radius - 8);
+        });
+    }
+
+    function updateNodeCount() {
+        document.getElementById('map-node-count').textContent = String(nodes.length).padStart(2, '0') + ' NODOS';
+    }
+
+    function renderNodeList() {
+        const list = document.getElementById('node-list');
+        list.innerHTML = '';
+        nodes.forEach(n => {
+            const color = statusColor[n.status] || statusColor.normal;
+            const row = document.createElement('div');
+            row.className = 'flex items-center justify-between px-3 py-2 border-2 border-[#0A0A0A] rounded-[8px] bg-[#F5EFE6]';
+            row.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full" style="background:${color};"></span>
+                    <span class="font-mono text-[11px] font-semibold">${n.id}</span>
+                    <span class="font-mono text-[10px] text-[#0A0A0A]/50">${n.type}</span>
+                </div>
+                <span class="font-mono text-[10px] text-[#0A0A0A]/60">${n.label}</span>
+            `;
+            list.appendChild(row);
+        });
+    }
+
+    function refresh() {
+        const rect = canvas.getBoundingClientRect();
+        drawMap(rect.width, rect.height);
+        updateNodeCount();
+        renderNodeList();
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    renderNodeList();
+
+    // --- Formulario simulado ---
+    const form = document.getElementById('node-form');
+    const feedback = document.getElementById('form-feedback');
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const name = document.getElementById('node-name').value.trim() || 'Nodo sin nombre';
+        const xPct = Math.min(100, Math.max(0, Number(document.getElementById('node-x').value)));
+        const yPct = Math.min(100, Math.max(0, Number(document.getElementById('node-y').value)));
+        const type = document.getElementById('node-type').value;
+        const status = document.getElementById('node-status').value;
+
+        const nextIndex = nodes.length + 1;
+        const id = type === 'ESP32' ? 'ESP32-' + nextIndex : 'N-' + String(nextIndex).padStart(2, '0');
+
+        nodes.push({
+            id: id,
+            x: xPct / 100,
+            y: yPct / 100,
+            status: type === 'ESP32' ? 'real' : status,
+            type: type,
+            label: name,
+        });
+
+        refresh();
+
+        feedback.classList.remove('hidden');
+        setTimeout(() => feedback.classList.add('hidden'), 2500);
+        form.reset();
+        document.getElementById('node-x').value = 50;
+        document.getElementById('node-y').value = 50;
+    });
+
+    // --- Reloj del header (decorativo, igual al panel principal) ---
+    function tick() {
+        const now = new Date();
+        const t = now.toLocaleTimeString('es-PE', { hour12: false });
+        document.getElementById('header-clock').textContent = t;
+        document.getElementById('header-status').textContent = 'EN VIVO · SINCRONIZADO ' + t;
+    }
+    tick();
+    setInterval(tick, 1000);
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ecopulse | Monitoreo de Calidad de Aire</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont/tabler-icons.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+        :root {
+            --bg-cream: #F5EFE6;
+            --border-dark: #0A0A0A;
+            --accent-teal: #1F4A4E;
+            --accent-clay: #E8C6B8;
+        }
+
+        .font-display { font-family: 'Space Grotesk', sans-serif; letter-spacing: -0.01em; }
+        .font-body { font-family: 'Inter', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
+        
+        .label { font-family: 'Space Grotesk', sans-serif; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; font-size: 11px; }
+        .cell { border: 2px solid var(--border-dark); border-radius: 12px; box-shadow: inset 0 2px 0 rgba(255,255,255,0.5), inset 0 -2px 8px rgba(10,10,10,0.06); position: relative; overflow: hidden; transition: transform 0.2s ease; }
+        .cell:hover { transform: translateY(-2px); }
+
+        .tint-green { background: #E6F0EA; }
+        .tint-teal { background: #DCE6E6; }
+        .tint-amber { background: #ECE0CB; }
+        .tint-cream { background: #F5EFE6; }
+        .tint-clay { background: #E8C6B8; }
+        
+        .dot::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: currentColor; margin-right: 8px; vertical-align: middle; }
+        
+        .status-danger { color: #d03b3b; }
+        .status-warning { color: #fab219; }
+        .status-ok { color: #2A7A4A; }
+
+        .brutalist-input { 
+            background: rgba(255, 255, 255, 0.5); 
+            border: 2px solid var(--border-dark); 
+            border-radius: 8px; 
+            padding: 4px 10px; 
+            font-family: 'JetBrains Mono', monospace; 
+            font-size: 12px; 
+            outline: none; 
+            transition: background 0.2s;
+        }
+        .brutalist-input:focus { background: #FFF; }
+
+        .brutalist-btn {
+            border: 2px solid var(--border-dark);
+            border-radius: 10px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.05em;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .brutalist-btn-primary { background: var(--accent-teal); color: #F5EFE6; }
+        .brutalist-btn-primary:hover { background: var(--border-dark); }
+        .brutalist-btn-secondary { background: var(--bg-cream); color: var(--border-dark); }
+        .brutalist-btn-secondary:hover { background: var(--accent-clay); }
+
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+</head>
+<body class="font-body bg-[#F5EFE6] text-[#0A0A0A] min-h-screen">
+
+<div class="max-w-[1440px] mx-auto pb-12">
+    <!-- Header -->
+    <header class="border-b-2 border-[#0A0A0A] bg-[#F5EFE6] sticky top-0 z-50">
+        <div class="flex items-stretch justify-between px-8">
+            <div class="flex items-center gap-4 py-5">
+                <div class="w-8 h-8 border-2 border-[#0A0A0A] rounded-[8px] bg-[#1F4A4E] flex items-center justify-center">
+                    <i class="ti ti-wind text-[#E8C6B8] text-xl"></i>
+                </div>
+                <div class="font-display font-bold text-xl tracking-tight uppercase">ECOPULSE<span class="text-[#1F4A4E]"></span></div>
+                <div class="ml-6 label text-[#0A0A0A]/60 hidden md:block">SISTEMA DE MONITOREO IOT · v2.1</div>
+            </div>
+            <nav class="relative flex items-stretch">
+                <a class="px-6 flex items-center font-display font-semibold text-sm bg-[#E8C6B8] border-l-2 border-r-2 border-[#0A0A0A]">Panel de Control</a>
+                <a class="px-6 flex items-center font-display font-semibold text-sm text-[#0A0A0A]/60 hover:text-[#0A0A0A] border-r-2 border-[#0A0A0A] hidden lg:flex" href="redSensores.html">Red de Sensores</a>
+                <div class="flex items-center gap-3 pl-6 pr-2">
+                    <button class="w-9 h-9 border-2 border-[#0A0A0A] rounded-[8px] flex items-center justify-center text-base hover:bg-[#E8C6B8]"><i class="ti ti-search"></i></button>
+                    <div class="w-9 h-9 border-2 border-[#0A0A0A] rounded-[8px] bg-[#1F4A4E] text-[#F5EFE6] flex items-center justify-center font-display font-bold text-xs">ESP</div>
+                </div>
+            </nav>
+        </div>
+        
+        <div class="flex items-center justify-between px-8 py-3 border-t-2 border-[#0A0A0A] bg-[#1F4A4E] text-[#F5EFE6]">
+            <div class="flex items-center gap-6 label">
+                <span class="text-[#E8C6B8] dot" id="header-status">EN VIVO · SINCRONIZADO --:--:--</span>
+                <span class="opacity-60 hidden sm:inline" id="header-conn">ACTIVO: MQ135 · DHT11 · KY038 · ESP32</span>
+            </div>
+            <div class="flex items-center gap-6 label">
+                <span class="opacity-60 hidden sm:inline">ESTADO DE LA RED</span>
+                <span class="text-[#E8C6B8]" id="header-net-status">ÓPTIMO</span>
+                <span class="opacity-60">|</span>
+                <span id="header-clock">--:--:--</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Page Title -->
+    <div class="px-8 pt-8 pb-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+            <div class="label text-[#0A0A0A]/50 mb-2">Inteligencia Ambiental en Tiempo Real</div>
+            <h1 class="font-display font-bold text-4xl">Calidad del Aire <span class="text-[#1F4A4E]">/</span> Monitoreo Urbano</h1>
+        </div>
+        <div class="flex items-center gap-2">
+            <button class="px-4 py-2 brutalist-btn brutalist-btn-secondary">Exportar Reporte</button>
+            <button class="px-4 py-2 brutalist-btn brutalist-btn-primary">Forzar Actualización</button>
+        </div>
+    </div>
+
+    <!-- Main Dashboard Grid -->
+    <main class="px-8 pb-8 grid grid-cols-1 md:grid-cols-6 md:grid-rows-[180px_180px_180px] gap-4">
+        
+        
+        <!-- Air Quality (MQ135) - The HERO Card -->
+        <div class="cell tint-green md:col-span-2 md:row-span-2 p-6 flex flex-col justify-between" id="card-air">
+            <div class="flex items-start justify-between">
+                <div>
+                    <div class="label text-[#2A7A4A] dot">CALIDAD DEL AIRE · MQ135</div>
+                    <div class="mt-2 text-xs text-[#0A0A0A]/60 font-body">Concentración de partículas en ppm</div>
+                </div>
+                <div class="flex items-center gap-1.5 px-2.5 py-1 border-2 border-[#2A7A4A] rounded-[8px] bg-[#2A7A4A] text-[#F5EFE6]">
+                    <i class="ti ti-wind text-sm"></i>
+                    <span class="font-mono text-[11px] font-semibold" id="kpi-air-label">NORMAL</span>
+                </div>
+            </div>
+            
+            <div class="w-full h-16 relative mt-4">
+                <canvas id="sparkline-air"></canvas>
+            </div>
+            
+            <div class="flex items-end justify-between">
+                <div class="font-mono text-[10px] text-[#0A0A0A]/50 uppercase">vs promedio de 450 ppm</div>
+                <div class="font-mono font-bold text-5xl text-[#0A0A0A] text-right leading-none tracking-tight">
+                    <span id="kpi-air">--</span><span class="text-2xl ml-1">ppm</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Temperature Card -->
+        <div class="cell tint-amber md:col-span-2 md:row-span-1 p-5 flex items-stretch" id="card-temp">
+            <div class="flex-1 flex flex-col justify-between">
+                <div>
+                    <div class="label dot" style="color:#8a6818">TEMPERATURA</div>
+                    <div class="text-xs text-[#0A0A0A]/60 mt-1">Lectura térmica en tiempo real</div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i class="ti ti-thermometer text-[#8a6818]"></i>
+                    <span class="font-mono text-[11px] text-[#8a6818] font-semibold uppercase" id="kpi-temp-st">Normal</span>
+                </div>
+            </div>
+            <div class="text-right flex flex-col justify-between items-end">
+                <div class="font-mono font-bold text-4xl text-[#0A0A0A] leading-none tracking-tight"><span id="kpi-temp">--</span>°C</div>
+                <div class="font-mono text-[11px] text-[#0A0A0A]/60">máx · 35.0°C</div>
+            </div>
+        </div>
+
+        <!-- Humidity Split Card -->
+        <div class="cell md:col-span-2 md:row-span-2 flex overflow-hidden">
+            <div class="w-[44%] bg-[#E8C6B8] p-5 flex flex-col justify-between border-r-2 border-[#0A0A0A]" id="card-hum">
+                <div>
+                    <div class="label">HUMEDAD</div>
+                    <div class="text-xs text-[#0A0A0A]/70 mt-2">Humedad relativa del aire.</div>
+                </div>
+                <div class="space-y-1.5">
+                    <div class="flex justify-between gap-2 font-mono text-[10px]"><span class="text-[#0A0A0A]/60 uppercase">Alta</span><span class="font-semibold">80%</span></div>
+                    <div class="flex justify-between gap-2 font-mono text-[10px]"><span class="text-[#0A0A0A]/60 uppercase">Ideal</span><span class="font-semibold">55%</span></div>
+                    <div class="flex justify-between gap-2 font-mono text-[10px]"><span class="text-[#0A0A0A]/60 uppercase">Baja</span><span class="font-semibold">30%</span></div>
+                </div>
+            </div>
+            <div class="flex-1 bg-[#F5EFE6] p-5 flex flex-col justify-between relative">
+                <div class="flex items-center justify-between">
+                    <div class="label text-[#0A0A0A]/50">SATURACIÓN</div>
+                    <div class="flex items-center gap-1.5 px-2 py-0.5 border-2 border-[#2A7A4A] rounded-full bg-[#2A7A4A]/10 text-[#2A7A4A] font-mono text-[10px] font-bold" id="kpi-hum-label">
+                        <i class="ti ti-droplet text-xs"></i> ÓPTIMA
+                    </div>
+                </div>
+                <div class="font-mono font-bold text-[88px] leading-[0.85] text-[#0A0A0A] text-right tracking-tight"><span id="kpi-hum">--</span><span class="text-2xl">%</span></div>
+                <div class="flex items-center justify-between">
+                    <div class="font-mono text-[10px] text-[#0A0A0A]/60 uppercase" id="kpi-hum-st">Estable</div>
+                    <div class="flex gap-0.5 items-end h-4" id="hum-visualizer">
+                        <div class="w-1 bg-[#2A7A4A] h-2"></div>
+                        <div class="w-1 bg-[#2A7A4A] h-3"></div>
+                        <div class="w-1 bg-[#2A7A4A] h-2.5"></div>
+                        <div class="w-1 bg-[#2A7A4A] h-4"></div>
+                        <div class="w-1 bg-[#2A7A4A] h-3"></div>
+                        <div class="w-1 bg-[#B8862B] h-2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sound Intensity Card -->
+        <div class="cell tint-teal md:col-span-2 md:row-span-1 p-5 flex flex-col justify-between" id="card-snd">
+            <div class="flex items-start justify-between">
+                <div>
+                    <div class="label text-[#1F4A4E] dot">SONIDO · KY038</div>
+                    <div class="text-xs text-[#0A0A0A]/60 mt-1">Amplitud acústica relativa</div>
+                </div>
+                <div class="flex items-center gap-1.5 px-2.5 py-1 border-2 border-[#1F4A4E] rounded-[8px] bg-[#1F4A4E] text-[#F5EFE6]">
+                    <i class="ti ti-volume text-sm"></i>
+                    <span class="font-mono text-[11px] font-semibold uppercase" id="kpi-snd-label">SILENCIOSO</span>
+                </div>
+            </div>
+            <div class="flex items-end justify-between">
+                <div class="flex gap-1 items-end">
+                    <div class="flex flex-col items-start">
+                        <div class="font-mono text-[10px] text-[#0A0A0A]/60 uppercase">Pico</div>
+                        <div class="font-mono text-[11px] font-bold" id="kpi-snd-peak">--</div>
+                    </div>
+                    <div class="w-px h-6 bg-[#0A0A0A]/20 mx-2"></div>
+                    <div class="flex flex-col items-start">
+                        <div class="font-mono text-[10px] text-[#0A0A0A]/60 uppercase">Prom</div>
+                        <div class="font-mono text-[11px] font-bold" id="kpi-snd-avg">--</div>
+                    </div>
+                </div>
+                <div class="font-mono font-bold text-4xl text-[#0A0A0A] leading-none text-right tracking-tight"><span id="kpi-snd">--</span></div>
+            </div>
+        </div>
+
+        <!-- Active Nodes Summary -->
+        <div class="cell tint-cream md:col-span-1 md:row-span-1 p-5 flex flex-col justify-between border-2">
+            <div>
+                <div class="label dot text-[#1F4A4E]">RED</div>
+                <div class="text-[10px] text-[#0A0A0A]/60 mt-1">Dispositivos IoT Activos</div>
+            </div>
+            <div>
+                <div class="font-mono font-bold text-4xl leading-none text-right" id="kpi-nodes">05</div>
+                <div class="flex justify-between items-baseline mt-2 pt-2 border-t-2 border-dashed border-[#0A0A0A]/20">
+                    <span class="font-mono text-[10px] text-[#0A0A0A]/60 uppercase">Estado ESP32</span>
+                    <span class="font-mono font-bold text-sm text-[#2A7A4A]">EN LÍNEA</span>
+                </div>
+                <div class="flex items-center gap-1 mt-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#2A7A4A] animate-pulse"></span>
+                    <span class="font-mono text-[9px] text-[#0A0A0A]/60 uppercase">OPERATIVO</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ThingSpeak Cloud Panel -->
+        <div class="cell tint-cream md:col-span-3 md:row-span-1 p-5 flex items-stretch gap-6 overflow-hidden">
+            <div class="flex flex-col justify-between min-w-[140px]">
+                <div>
+                    <div class="label dot text-[#1F4A4E]">THINGSPEAK</div>
+                    <div class="text-[10px] text-[#0A0A0A]/60 mt-1">Integración en la Nube</div>
+                </div>
+                <div>
+                    <div class="font-mono font-bold text-2xl leading-none tracking-tight text-[#0A0A0A]/40" id="ts-status-text">DESCONECTADO</div>
+                    <div class="font-mono text-[10px] text-[#0A0A0A]/60 mt-1 uppercase" id="ts-last-update">Esperando datos...</div>
+                </div>
+            </div>
+            <div class="w-px bg-[#0A0A0A]/15"></div>
+            <div class="flex-1 flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <div class="label text-[#0A0A0A]/50">CONFIGURACIÓN</div>
+                    <div class="font-mono text-[10px] text-[#0A0A0A]/50 uppercase">Acceso API de Lectura</div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3 mt-2">
+                    <div class="flex flex-col gap-1">
+                        <span class="label text-[9px] text-[#0A0A0A]/40">ID de Canal</span>
+                        <input type="number" id="ts-channel" placeholder="ID" class="brutalist-input">
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <span class="label text-[9px] text-[#0A0A0A]/40">Clave API</span>
+                        <input type="text" id="ts-key" placeholder="Clave" class="brutalist-input">
+                    </div>
+                </div>
+                <button onclick="conectarThingSpeak()" class="mt-3 w-full py-1.5 brutalist-btn brutalist-btn-primary">Conectar Sistema</button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Alert History Ledger -->
+    <section class="px-8 pb-8">
+        <div class="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-4">
+            <div>
+                <div class="label text-[#0A0A0A]/50">Registro Histórico de Eventos</div>
+                <h2 class="font-display font-bold text-2xl mt-1">Historial de Alertas <span class="text-[#0A0A0A]/30">/ Libro de Sistema</span></h2>
+            </div>
+            <div class="flex items-center gap-2">
+                <button class="px-3 py-1.5 brutalist-btn brutalist-btn-secondary bg-[#E8C6B8]">Todos los Registros</button>
+                <button class="px-3 py-1.5 brutalist-btn brutalist-btn-secondary hidden sm:block">Críticos</button>
+                <button class="px-3 py-1.5 brutalist-btn brutalist-btn-secondary hidden sm:block">Sensores</button>
+            </div>
+        </div>
+
+        <div class="cell bg-white/40 overflow-x-auto">
+            <div class="min-w-[700px]">
+                <div class="grid grid-cols-[120px_1fr_120px_300px] py-4 px-6 border-b-2 border-[#0A0A0A] label text-[#0A0A0A]/60 bg-[#F5EFE6]">
+                    <div>Hora</div>
+                    <div>Fuente del Sensor</div>
+                    <div>Nivel</div>
+                    <div>Descripción del Estado</div>
+                </div>
+
+                <div id="alerts-ledger-list" class="divide-y-2 divide-[#0A0A0A]/10">
+                    <!-- Alerts populated dynamically -->
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div>
+<div id="air-alert-modal"
+     class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+
+    <div class="bg-[#F5EFE6] border-2 border-[#d03b3b] rounded-xl p-6 w-[420px]">
+
+        <div class="flex items-center gap-3 mb-4">
+            <i class="ti ti-alert-triangle text-4xl text-[#d03b3b]"></i>
+
+            <div>
+                <h2 class="font-display text-2xl font-bold">
+                    Calidad del aire crítica
+                </h2>
+
+                <p class="text-sm text-[#0A0A0A]/70">
+                    Se ha detectado una concentración elevada.
+                </p>
+            </div>
+        </div>
+
+        <div class="font-mono text-5xl font-bold text-center my-6">
+            <span id="air-alert-value"></span> ppm
+        </div>
+
+        <button
+            onclick="closeAirAlert()"
+            class="w-full py-2 brutalist-btn brutalist-btn-primary">
+            Entendido
+        </button>
+
+    </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script type="module">
+    import { animate, stagger, inView } from "https://cdn.jsdelivr.net/npm/motion@12/+esm";
+
+    // Visual Enhancements
+    animate('.cell', { scale: [0.95, 1], opacity: [0, 1] }, { type: 'spring', visualDuration: 0.6, bounce: 0.4, delay: stagger(0.08) });
+
+    // IoT Monitoring Logic
+    const THRESHOLDS = {
+        temp: { warning: 30, danger: 35 },
+        hum:  { warning: 80, danger: 90 },
+        air:  { warning: 1500, danger: 2500 },
+        snd:  { warning: 2000, danger: 3000 },
+    };
+
+    let DATA = { temp: 24.1, hum: 61.5, air: 480, snd: 350 };
+    let HISTORY = { air: [] };
+    const MAX_PTS = 20;
+    let tsChannel = null, tsKey = null, tsTimer = null;
+
+    // Air Quality Sparkline (Hero Card)
+    const ctxAir = document.getElementById('sparkline-air').getContext('2d');
+    const chartAir = new Chart(ctxAir, {
+        type: 'line',
+        data: {
+            labels: Array(MAX_PTS).fill(''),
+            datasets: [{
+                data: HISTORY.air,
+                borderColor: '#2A7A4A',
+                borderWidth: 4,
+                pointRadius: 0,
+                tension: 0.4,
+                fill: true,
+                backgroundColor: 'rgba(42, 122, 74, 0.1)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { enabled: false } },
+            scales: { x: { display: true }, y: { display: true, min: 0, max:2500 } }
+        }
+    });
+
+    function airLabel(v) {
+        if (v < 800) return { text:'LIMPIO', color:'#2A7A4A' };
+        if (v < THRESHOLDS.air.warning) return { text:'MODERADO', color:'#fab219' };
+        return { text:'POBRE', color:'#d03b3b' };
+    }
+
+    function sndLabel(v) {
+        if (v < 500) return { text:'SILENCIOSO', color:'#2A7A4A' };
+        if (v < THRESHOLDS.snd.warning) return { text:'NORMAL', color:'#fab219' };
+        return { text:'RUIDOSO', color:'#d03b3b' };
+    }
+
+    const alerts = [];
+    function addAlert(msg, level, sensor) {
+        const now = new Date();
+        const t = now.toLocaleTimeString('es-PE', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+        
+        alerts.unshift({ msg, level, time: t, sensor });
+        if (alerts.length > 10) alerts.pop();
+        renderAlerts();
+    }
+
+    function renderAlerts() {
+        const el = document.getElementById('alerts-ledger-list');
+        el.innerHTML = alerts.map(a => `
+            <div class="grid grid-cols-[120px_1fr_120px_300px] py-4 px-6 items-center hover:bg-[#E8C6B8]/40 transition-colors">
+                <div class="font-mono text-xs text-[#0A0A0A]/60">${a.time}</div>
+                <div class="font-display font-bold text-sm uppercase">${a.sensor}</div>
+                <div>
+                    <span class="px-2 py-0.5 border-2 ${a.level === 'danger' ? 'border-[#d03b3b] text-[#d03b3b]' : a.level === 'warning' ? 'border-[#fab219] text-[#fab219]' : 'border-[#2A7A4A] text-[#2A7A4A]'} rounded-full text-[10px] font-mono font-bold uppercase">
+                        ${a.level}
+                    </span>
+                </div>
+                <div class="font-mono text-sm">${a.msg}</div>
+            </div>`).join('');
+    }
+
+    function showAirAlert(value) {
+    const modal = document.getElementById('air-alert-modal');
+    document.getElementById('air-alert-value').textContent = Math.round(value);
+    modal.classList.remove('hidden');
+}
+
+    function closeAirAlert() {
+        document.getElementById('air-alert-modal').classList.add('hidden');
+    }
+
+    let airAlertVisivle = false;
+
+    function updateUI() {
+        // Air Quality
+        document.getElementById('kpi-air').textContent = Math.round(DATA.air);
+        const al = airLabel(DATA.air);
+        document.getElementById('kpi-air-label').textContent = al.text;
+        document.getElementById('card-air').style.borderColor = al.color;
+
+        if (DATA.air >= THRESHOLDS.air.warning && !airAlertVisible) {
+                airAlertVisible = true;
+                showAirAlert(DATA.air);
+            }
+
+            if (DATA.air < THRESHOLDS.air.warning) {
+                airAlertVisible = false;
+            }
+        
+        if (HISTORY.air.length >= MAX_PTS) HISTORY.air.shift();
+        HISTORY.air.push(DATA.air);
+        chartAir.update('none');
+
+        // Temperature
+        document.getElementById('kpi-temp').textContent = DATA.temp.toFixed(1);
+        const tempLevel = DATA.temp >= THRESHOLDS.temp.danger ? 'danger' : (DATA.temp >= THRESHOLDS.temp.warning ? 'warning' : 'ok');
+        document.getElementById('kpi-temp-st').textContent = tempLevel === 'ok' ? 'NORMAL' : (tempLevel === 'warning' ? 'ALTA' : 'CRÍTICA');
+        document.getElementById('kpi-temp-st').className = `font-mono text-[11px] font-semibold uppercase ${tempLevel === 'danger' ? 'status-danger' : tempLevel === 'warning' ? 'status-warning' : 'status-ok'}`;
+        document.getElementById('card-temp').style.borderColor = tempLevel === 'danger' ? '#d03b3b' : (tempLevel === 'warning' ? '#fab219' : '#0A0A0A');
+
+        // Humidity
+        document.getElementById('kpi-hum').textContent = Math.round(DATA.hum);
+        const humLevel = DATA.hum >= THRESHOLDS.hum.warning ? 'warning' : (DATA.hum <= 30 ? 'warning' : 'ok');
+        document.getElementById('kpi-hum-label').innerHTML = `<i class="ti ti-droplet text-xs"></i> ${humLevel === 'ok' ? 'ÓPTIMA' : 'AJUSTAR'}`;
+        document.getElementById('kpi-hum-label').className = `flex items-center gap-1.5 px-2 py-0.5 border-2 rounded-full font-mono text-[10px] font-bold ${humLevel === 'ok' ? 'border-[#2A7A4A] bg-[#2A7A4A]/10 text-[#2A7A4A]' : 'border-[#fab219] bg-[#fab219]/10 text-[#fab219]'}`;
+
+        // Sound Intensity
+        document.getElementById('kpi-snd').textContent = Math.round(DATA.snd);
+        const sl = sndLabel(DATA.snd);
+        document.getElementById('kpi-snd-label').textContent = sl.text;
+        document.getElementById('kpi-snd-label').parentElement.className = `flex items-center gap-1.5 px-2.5 py-1 border-2 rounded-[8px] text-[#F5EFE6] ${sl.text === 'RUIDOSO' ? 'bg-[#d03b3b] border-[#d03b3b]' : sl.text === 'NORMAL' ? 'bg-[#fab219] border-[#fab219]' : 'bg-[#1F4A4E] border-[#1F4A4E]'}`;
+        document.getElementById('kpi-snd-peak').textContent = Math.round(DATA.snd * 1.15);
+        document.getElementById('kpi-snd-avg').textContent = Math.round(DATA.snd * 0.9);
+
+        // Header
+        const now = new Date().toLocaleTimeString('es-PE');
+        document.getElementById('header-status').textContent = `EN VIVO · SINCRONIZADO ${now}`;
+    }
+
+    async function fetchThingSpeak() {
+        if (!tsChannel || !tsKey) return;
+        try {
+            const r = await fetch(`https://api.thingspeak.com/channels/${tsChannel}/feeds/last.json?api_key=${tsKey}`);
+            const j = await r.json();
+            if (j && j.field1) {
+                DATA.temp = parseFloat(j.field1) || DATA.temp;
+                DATA.hum  = parseFloat(j.field2) || DATA.hum;
+                DATA.air  = parseFloat(j.field3) || DATA.air;
+                DATA.snd  = parseFloat(j.field4) || DATA.snd;
+                
+                document.getElementById('ts-status-text').textContent = 'CONECTADO';
+                document.getElementById('ts-status-text').className = 'font-mono font-bold text-2xl leading-none tracking-tight text-[#2A7A4A]';
+                document.getElementById('ts-last-update').textContent = 'Últimos datos: ' + new Date(j.created_at).toLocaleTimeString('es-PE', {hour:'2-digit', minute:'2-digit'});
+                
+                updateUI();
+            }
+        } catch(e) {
+            document.getElementById('ts-status-text').textContent = 'ERROR';
+            document.getElementById('ts-status-text').className = 'font-mono font-bold text-2xl leading-none tracking-tight text-[#d03b3b]';
+        }
+    }
+
+    window.conectarThingSpeak = function() {
+        tsChannel = document.getElementById('ts-channel').value.trim();
+        tsKey     = document.getElementById('ts-key').value.trim();
+        if (!tsChannel || !tsKey) { alert('Por favor, ingrese el ID de Canal y la Clave API de Lectura'); return; }
+        
+        if (tsTimer) clearInterval(tsTimer);
+        fetchThingSpeak();
+        tsTimer = setInterval(fetchThingSpeak, 20000);
+        addAlert('Sincronización en la nube ThingSpeak establecida', 'ok', 'Sistema');
+    };
+
+    function simulate() {
+        if (tsTimer) return;
+        DATA.temp += (Math.random() - 0.5) * 0.4;
+        DATA.hum  += (Math.random() - 0.5) * 0.8;
+        DATA.air  += (Math.random() - 0.5) * 40;
+        DATA.snd  += (Math.random() - 0.5) * 80;
+        
+        // Safety bounds
+        DATA.temp = Math.max(15, Math.min(40, DATA.temp));
+        DATA.hum = Math.max(20, Math.min(95, DATA.hum));
+        DATA.air = Math.max(300, Math.min(3000, DATA.air));
+        DATA.snd = Math.max(100, Math.min(4000, DATA.snd));
+
+        if (Math.random() < 0.05) {
+            if (DATA.air > THRESHOLDS.air.warning) addAlert(`Aumento del nivel de partículas: ${Math.round(DATA.air)} ppm`, 'warning', 'MQ135');
+            if (DATA.temp > THRESHOLDS.temp.warning) addAlert(`Umbral de calor alcanzado: ${DATA.temp.toFixed(1)}°C`, 'warning', 'DHT11');
+        }
+        updateUI();
+    }
+
+    function clock() {
+        document.getElementById('header-clock').textContent = new Date().toLocaleTimeString('es-PE');
+    }
+
+    // Init
+    setInterval(simulate, 3000);
+    setInterval(clock, 1000);
+    addAlert('Ecopulse Environmental OS Listo', 'ok', 'Sistema');
+    updateUI();
+    clock();
+</script>
+</body>
+</html>
